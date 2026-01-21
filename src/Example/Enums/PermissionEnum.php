@@ -1,6 +1,6 @@
 <?php
 
-namespace Din9xtr\LaravelEnumPermissions\Example;
+namespace Din9xtr\LaravelEnumPermissions\Example\Enums;
 
 use Din9xtr\LaravelEnumPermissions\Contracts\PackagePermissionInterface;
 use Din9xtr\LaravelEnumPermissions\Contracts\PermissionInterface;
