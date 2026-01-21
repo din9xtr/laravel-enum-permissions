@@ -3,6 +3,14 @@
   "description": "Laravel permission management system using PHP Enums",
   "type": "library",
   "license": "MIT",
+  "version": "1.0.0",
+  "keywords": [
+    "laravel",
+    "permissions",
+    "enum"
+  ],
+  "homepage": "https://github.com/din9xtr/laravel-enum-permissions",
+  "readme": "README.md",
   "autoload": {
     "psr-4": {
       "Din9xtr\\LaravelEnumPermissions\\": "src/"
@@ -10,7 +18,8 @@
   },
   "authors": [
     {
-      "name": "Din9xtr"
+      "name": "Din9xtr",
+      "homepage": "https://github.com/din9xtr"
     }
   ],
   "minimum-stability": "stable",
