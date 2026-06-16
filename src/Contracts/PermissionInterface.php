@@ -12,10 +12,9 @@ interface PermissionInterface extends BackedEnum
     public static function all(): array;
 
     /**
-     * @return array<PackagePermissionInterface>
+     * @return array<PermissionInterface>
      */
     public static function getPackagePermissions(
         PackagePermissionInterface $package
     ): array;
-
 }

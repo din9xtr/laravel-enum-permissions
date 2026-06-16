@@ -1,6 +1,8 @@
 <?php
 
-namespace Din9xtr\LaravelEnumPermissions\Example\Enums;
+declare(strict_types=1);
+
+namespace Din9xtr\LaravelEnumPermissions\Tests\Fixtures;
 
 use Din9xtr\LaravelEnumPermissions\Contracts\PackagePermissionInterface;
 

@@ -1,6 +1,8 @@
 <?php
 
-namespace Din9xtr\LaravelEnumPermissions\Example\Enums;
+declare(strict_types=1);
+
+namespace Din9xtr\LaravelEnumPermissions\Tests\Fixtures;
 
 use Din9xtr\LaravelEnumPermissions\Contracts\PackagePermissionInterface;
 use Din9xtr\LaravelEnumPermissions\Contracts\PermissionInterface;
@@ -14,6 +16,9 @@ enum PermissionEnum: string implements PermissionInterface
     case EXPORT = 'export';
     case IMPORT = 'import';
 
+    /**
+     * @return list<string>
+     */
     public static function all(): array
     {
         return array_column(self::cases(), 'value');

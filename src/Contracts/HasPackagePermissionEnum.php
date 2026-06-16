@@ -1,6 +1,5 @@
 <?php
 
-
 namespace Din9xtr\LaravelEnumPermissions\Contracts;
 
 interface HasPackagePermissionEnum

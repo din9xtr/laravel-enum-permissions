@@ -51,7 +51,7 @@ final class PermissionDeniedException extends Exception
     public static function forPermission(
         PermissionInterface $permission,
         ?string $resourceType = null,
-        $resourceId = null,
+        int|string|null $resourceId = null,
         ?string $action = null
     ): self {
         return new self($permission, $resourceType, $resourceId, $action);

@@ -11,7 +11,7 @@ use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
 /**
  * @implements CastsAttributes<PermissionsCollection, array<string, bool>|PermissionsCollection|null>
  */
-final class PermissionsCast implements CastsAttributes
+final class HexPermissionsCast implements CastsAttributes
 {
     /**
      * @param  array<string, mixed>  $attributes
@@ -20,7 +20,7 @@ final class PermissionsCast implements CastsAttributes
     {
         $enum = PermissionsStorage::permissionEnum($model);
 
-        return PermissionsStorage::collectionFromJson($value, $enum);
+        return PermissionsStorage::collectionFromHex($value, $enum);
     }
 
     /**
@@ -33,7 +33,7 @@ final class PermissionsCast implements CastsAttributes
         $normalized = PermissionsStorage::normalizeValue($value, $enum);
 
         return [
-            $key => PermissionsStorage::encodeJson($normalized),
+            $key => PermissionsStorage::encodeHex($normalized, $enum),
         ];
     }
 }

@@ -1,9 +1,9 @@
 # Laravel Enum Permissions
 
 [![PHP Version](https://img.shields.io/badge/PHP-8.3%2B-blue.svg)]()
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.txt)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Type-safe permission management system for Laravel
+Type-safe permission management system for Laravel models using PHP backed enums.
 
 ## Installation
 
@@ -11,13 +11,22 @@ Type-safe permission management system for Laravel
 composer require din9xtr/laravel-enum-permissions
 ```
 
-## Quick Start
+## Storage formats
 
-### Create Migration
+The package supports two storage formats:
+
+- JSON: default and backward compatible with `PermissionsCast`.
+- HEX: compact bitmask storage with `HexPermissionsCast`.
+
+Existing users can keep `PermissionsCast::class` unchanged. New projects may choose HEX explicitly in the model cast.
+
+## Migrations
+
+### JSON
+
+Use JSON when readability and direct database inspection matter.
 
 ```php
-<?php
-
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -37,16 +46,51 @@ return new class extends Migration {
         });
     }
 };
-
 ```
 
-### Create Permission Enum
+JSON is stored as an object keyed by permission enum values:
+
+```json
+{
+    "create": true,
+    "read": true,
+    "update": false
+}
+```
+
+### HEX
+
+Use HEX when compact storage is preferred.
 
 ```php
-<?php
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-namespace Din9xtr\LaravelEnumPermissions\Example\Enums;
+return new class extends Migration {
+    public function up(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->string('permissions', 64)->nullable();
+        });
+    }
 
+    public function down(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropColumn('permissions');
+        });
+    }
+};
+```
+
+HEX is stored as a deterministic bitmask. Bit `0` maps to the first `PermissionEnum::cases()` item, bit `1` maps to the second item, and so on. For example, if `CREATE`, `READ`, and `EXPORT` are enabled, the stored value is `13`.
+
+For HEX storage, the order of permission enum cases is part of the persisted data format. Append new permissions to the enum when possible. Reordering or inserting cases in the middle changes the meaning of existing stored HEX values and requires a data migration.
+
+## Enums
+
+```php
 use Din9xtr\LaravelEnumPermissions\Contracts\PackagePermissionInterface;
 use Din9xtr\LaravelEnumPermissions\Contracts\PermissionInterface;
 
@@ -91,13 +135,7 @@ enum PermissionEnum: string implements PermissionInterface
 }
 ```
 
-### Create Package Enum (optional)
-
 ```php
-<?php
-
-namespace Din9xtr\LaravelEnumPermissions\Example\Enums;
-
 use Din9xtr\LaravelEnumPermissions\Contracts\PackagePermissionInterface;
 
 enum PackageEnum: string implements PackagePermissionInterface
@@ -109,20 +147,16 @@ enum PackageEnum: string implements PackagePermissionInterface
 }
 ```
 
-### Configure model
+`PackageEnum` is optional unless you use `applyPackage()` or `detectPackage()`. When used with the trait, it must define a `CUSTOM` case.
+
+## Model configuration
+
+### JSON cast
 
 ```php
-<?php
-
-declare(strict_types=1);
-
-namespace Din9xtr\LaravelEnumPermissions\Example;
-
 use Din9xtr\LaravelEnumPermissions\Casts\PermissionsCast;
 use Din9xtr\LaravelEnumPermissions\Contracts\HasPackagePermissionEnum;
 use Din9xtr\LaravelEnumPermissions\Contracts\HasPermissionEnum;
-use Din9xtr\LaravelEnumPermissions\Example\Enums\PackageEnum;
-use Din9xtr\LaravelEnumPermissions\Example\Enums\PermissionEnum;
 use Din9xtr\LaravelEnumPermissions\Traits\HasPermissionsTrait;
 use Illuminate\Database\Eloquent\Model;
 
@@ -148,31 +182,70 @@ class User extends Model implements HasPermissionEnum, HasPackagePermissionEnum
 }
 ```
 
-### Usage Examples
+### HEX cast
+
+```php
+use Din9xtr\LaravelEnumPermissions\Casts\HexPermissionsCast;
+
+protected $casts = [
+    'permissions' => HexPermissionsCast::class,
+];
+```
+
+## Usage
 
 ```php
 $user = User::find(1);
-// Check if user has specific permission
+
 if ($user->hasPermission(PermissionEnum::CREATE)) {
-    // User can create
+    // User can create.
 }
-// Apply a package
+
 $user->applyPackage(PackageEnum::ADMIN)->save();
-// Detect which package user currently has
-$package = $user->detectPackage(); // Returns PackageEnum enum
+
+$package = $user->detectPackage();
 ```
+
+The cast returns a `PermissionsCollection`:
+
+```php
+$permissions = $user->permissions;
+
+$permissions->has(PermissionEnum::READ);
+$permissions->enabled();
+$permissions->toArray();
+```
+
+## Compatibility and edge cases
+
+- `PermissionsCast` keeps the original JSON behavior and remains the default recommendation for existing projects.
+- `HexPermissionsCast` is opt-in and does not read JSON values automatically.
+- `null`, an empty JSON value, an empty HEX value, `0`, and `0x0` are treated as all permissions disabled.
+- Unknown JSON permission keys are ignored on read and are not written back.
+- HEX bits beyond the current enum cases are ignored on read and are not written back.
+- Invalid HEX strings are treated as `0`.
+- Missing known permissions are normalized to `false`.
 
 ## Requirements
 
-PHP 8.3 or higher
+- PHP 8.3 or higher
+- Laravel 11.x components
 
-Laravel 11.x
+## Development
 
-Database with JSON column support
+```bash
+composer install
+vendor/bin/pint
+vendor/bin/phpstan analyse
+vendor/bin/phpunit
+composer validate
+composer archive --format=zip
+```
+
+The Composer archive excludes tests and development tooling, so production installs receive only the library files and package metadata.
 
 ## License
 
-This project is open-source and available under the **[MIT License](LICENSE)**.
+This project is open-source and available under the [MIT License](LICENSE).
 
 Copyright © 2026 Din9xtr
-

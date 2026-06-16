@@ -8,51 +8,58 @@ use Din9xtr\LaravelEnumPermissions\Collections\PermissionsCollection;
 use Din9xtr\LaravelEnumPermissions\Contracts\PackagePermissionInterface;
 use Din9xtr\LaravelEnumPermissions\Contracts\PermissionInterface;
 use Din9xtr\LaravelEnumPermissions\PermissionsValidator;
+use Din9xtr\LaravelEnumPermissions\Support\PermissionsStorage;
 
 trait HasPermissionsTrait
 {
     protected function getPermissionsAttributeName(): string
     {
         if (property_exists($this, 'permissionsAttribute')) {
-            return $this->permissionsAttribute;
+            $attribute = $this->permissionsAttribute;
+
+            return is_string($attribute) ? $attribute : 'permissions';
         }
 
         return 'permissions';
     }
 
+    /**
+     * @return class-string<PackagePermissionInterface>
+     */
     private function getPackageEnum(): string
     {
         $enum = static::packageEnum();
 
         PermissionsValidator::validatePackageEnum($enum);
 
+        /** @var class-string<PackagePermissionInterface> $enum */
         return $enum;
     }
 
+    /**
+     * @return class-string<PermissionInterface>
+     */
     private function getPermissionEnum(): string
     {
         $enum = static::permissionEnum();
 
         PermissionsValidator::validatePermissionEnum($enum);
 
+        /** @var class-string<PermissionInterface> $enum */
         return $enum;
     }
 
     public function hasPermission(PermissionInterface $permission): bool
     {
-        /** @var PermissionsCollection $permissions */
-        $permissions = $this->getAttribute($this->getPermissionsAttributeName());
-
-        return $permissions->has($permission);
+        return $this->getPermissionsCollection()->has($permission);
     }
 
     public function applyPackage(PackagePermissionInterface $package): static
     {
-        /** @var class-string<PermissionInterface> $enum */
         $enum = $this->getPermissionEnum();
 
         $permissions = array_fill_keys(
-            array_map(fn($e) => $e->value, $enum::cases()),
+            array_map(fn (PermissionInterface $permission) => $permission->value, $enum::cases()),
             false
         );
 
@@ -61,28 +68,61 @@ trait HasPermissionsTrait
         }
 
         $this->setAttribute($this->getPermissionsAttributeName(), $permissions);
+
         return $this;
     }
 
     public function detectPackage(): PackagePermissionInterface
     {
-        /** @var class-string<PackagePermissionInterface> $packageEnum */
         $packageEnum = $this->getPackageEnum();
-        $enabled = $this->getAttribute($this->getPermissionsAttributeName())->enabled()->all();
+        $enabled = $this->getPermissionsCollection()->enabled()->all();
 
         if ($enabled === []) {
-            return $packageEnum::CUSTOM;
+            return $this->customPackage($packageEnum);
         }
 
         foreach ($packageEnum::cases() as $package) {
-            if ($this->matchesPackage($package, $enabled)) {
+            if ($this->matchesPackage($package, array_values($enabled))) {
                 return $package;
             }
         }
 
-        return $packageEnum::CUSTOM;
+        return $this->customPackage($packageEnum);
     }
 
+    private function getPermissionsCollection(): PermissionsCollection
+    {
+        $permissions = $this->getAttribute($this->getPermissionsAttributeName());
+
+        if ($permissions instanceof PermissionsCollection) {
+            return $permissions;
+        }
+
+        $enum = $this->getPermissionEnum();
+
+        return new PermissionsCollection(
+            PermissionsStorage::normalizeValue($permissions, $enum),
+            $enum
+        );
+    }
+
+    /**
+     * @param  class-string<PackagePermissionInterface>  $packageEnum
+     */
+    private function customPackage(string $packageEnum): PackagePermissionInterface
+    {
+        $custom = constant($packageEnum.'::CUSTOM');
+
+        if (! $custom instanceof PackagePermissionInterface) {
+            throw new \LogicException("$packageEnum::CUSTOM must be a package permission");
+        }
+
+        return $custom;
+    }
+
+    /**
+     * @param  list<PermissionInterface>  $enabled
+     */
     private function matchesPackage(
         PackagePermissionInterface $package,
         array $enabled
@@ -101,7 +141,7 @@ trait HasPermissionsTrait
         }
 
         foreach ($packagePermissions as $permission) {
-            if (!isset($enabledValues[$permission->value])) {
+            if (! isset($enabledValues[$permission->value])) {
                 return false;
             }
         }

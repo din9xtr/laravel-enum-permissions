@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Din9xtr\LaravelEnumPermissions;
@@ -23,28 +24,30 @@ final class PermissionsValidator
         self::assertBackedEnum($enum);
         self::assertImplements($enum, PackagePermissionInterface::class);
 
-        if (!defined("$enum::CUSTOM")) {
+        if (! defined("$enum::CUSTOM")) {
             throw new LogicException("$enum must define a CUSTOM case");
         }
     }
 
     private static function assertEnum(string $enum): void
     {
-        if (!enum_exists($enum)) {
+        if (! enum_exists($enum)) {
             throw new LogicException("$enum is not an enum");
         }
     }
 
     private static function assertBackedEnum(string $enum): void
     {
-        if (!is_subclass_of($enum, BackedEnum::class)) {
+        if (! is_subclass_of($enum, BackedEnum::class)) {
             throw new LogicException("$enum must be a BackedEnum");
         }
     }
 
     private static function assertImplements(string $enum, string $interface): void
     {
-        if (!in_array($interface, class_implements($enum), true)) {
+        $interfaces = class_implements($enum);
+
+        if ($interfaces === false || ! in_array($interface, $interfaces, true)) {
             throw new LogicException(
                 "$enum must implement $interface"
             );

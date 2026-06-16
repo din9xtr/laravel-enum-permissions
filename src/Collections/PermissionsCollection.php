@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Din9xtr\LaravelEnumPermissions\Collections;
@@ -17,8 +18,8 @@ final class PermissionsCollection implements JsonSerializable
     private string $enumClass;
 
     /**
-     * @param array<string,bool> $permissions
-     * @param class-string<PermissionInterface> $enumClass
+     * @param  array<string,bool>  $permissions
+     * @param  class-string<PermissionInterface>  $enumClass
      */
     public function __construct(array $permissions, string $enumClass)
     {
@@ -28,7 +29,7 @@ final class PermissionsCollection implements JsonSerializable
 
     private function validatePermission(PermissionInterface $permission): void
     {
-        if (!($permission instanceof $this->enumClass)) {
+        if (! ($permission instanceof $this->enumClass)) {
             throw new InvalidArgumentException(
                 sprintf(
                     'Permission must be instance of %s, %s given',
@@ -42,15 +43,18 @@ final class PermissionsCollection implements JsonSerializable
     public function has(PermissionInterface $permission): bool
     {
         $this->validatePermission($permission);
+
         return $this->permissions[$permission->value] ?? false;
     }
 
-    /** @return Collection<PermissionInterface> */
+    /** @return Collection<int, PermissionInterface> */
     public function enabled(): Collection
     {
         return collect($this->permissions)
-            ->filter(fn(bool $enabled) => $enabled)
-            ->map(fn($_, string $value) => $this->enumClass::from($value));
+            ->filter(fn (bool $enabled) => $enabled)
+            ->keys()
+            ->map(fn (string $value) => $this->enumClass::from($value))
+            ->values();
     }
 
     /** @return array<string,bool> */
@@ -59,6 +63,7 @@ final class PermissionsCollection implements JsonSerializable
         return $this->permissions;
     }
 
+    /** @return array<string,bool> */
     public function jsonSerialize(): array
     {
         return $this->toArray();
@@ -66,7 +71,9 @@ final class PermissionsCollection implements JsonSerializable
 
     public function toJson(int $options = 0): string
     {
-        return json_encode($this->jsonSerialize(), $options);
+        $json = json_encode($this->jsonSerialize(), $options);
+
+        return $json === false ? '' : $json;
     }
 
     public function __toString(): string
